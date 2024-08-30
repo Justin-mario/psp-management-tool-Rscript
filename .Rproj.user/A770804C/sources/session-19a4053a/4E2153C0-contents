@@ -1,0 +1,83 @@
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+
+# Load the data
+file_path <- "Implementing and Evaluating a Web-Based Personal Software Process (PSP) Management Tool(1-17).xlsx"
+survey_data <- read_excel(file_path)
+
+# Remove "\r\n" and convert to appropriate data types
+survey_data$`What is your age range?\r\n` <- factor(gsub("\r\n", "", survey_data$`What is your age range?\r\n`))
+survey_data$`How many years of experience do you have in software development?\r\n` <- factor(gsub("\r\n", "", survey_data$`How many years of experience do you have in software development?\r\n`))
+
+
+print(summary_stats)
+# 1. Descriptive Statistics
+summary_stats <- summary(survey_data[c("What is your age range?\r\n", 
+                                       "How many years of experience do you have in software development?\r\n",
+                                       "Time tracking", "Defect logging", "Project planning", 
+                                       "Data visualization", "Integration with development environments",
+                                       "Gradual introduction of PSP levels\r\n")])
+
+# Save summary stats as an image
+png("summary_stats.png", width = 1500, height = 300)
+grid.table(summary_stats)
+print(summary_stats)
+dev.off()
+
+# 2. Correlation Analysis
+cor_matrix <- cor(survey_data[c("Time tracking", "Defect logging", "Project planning", 
+                                "Data visualization", "Integration with development environments",
+                                "Gradual introduction of PSP levels\r\n")], 
+
+                                    use = "complete.obs")
+
+# Save correlation matrix as an image
+png("correlation_matrix.png", width = 900, height = 1000)
+corrplot(cor_matrix, method = "circle")
+print(summary_stats)
+dev.off()
+
+# 3. Impact of Experience on Tool Effectiveness
+survey_data$productivity_impact <- factor(survey_data$`How has using this tool affected your productivity?`,
+                                          levels = c("Slightly decreased", "No change", "Slightly increased", "Significantly increased"),
+                                          ordered = TRUE)
+survey_data$productivity_impact <- as.numeric(survey_data$productivity_impact)
+
+anova_result <- aov(productivity_impact ~ `How many years of experience do you have in software development?\r\n`, data = survey_data)
+
+# Save ANOVA results as an image
+png("anova_results.png", width = 900, height = 900)
+plot(anova_result)
+dev.off()
+
+# 4. Effectiveness of Progressive Feature Unlocking
+chisq_result <- chisq.test(table(survey_data$`Did the gradual unlocking of PSP levels make it easier for you to learn and adopt PSP?`, 
+                                 survey_data$`Would you use this tool (or continue to use it) in your development work?`))
+
+# Save chi-square results as an image
+png("chisq_results.png", width = 800, height = 800)
+plot(chisq_result$observed, main = "Chi-square Test: Observed vs Expected")
+dev.off()
+
+# 5. Histogram of User-Friendliness Ratings
+user_friendliness_plot <- ggplot(survey_data, aes(x = `How would you rate the overall user-friendliness of the PSP tool?`)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  labs(title = "Distribution of User-Friendliness Ratings",
+       x = "User-Friendliness Rating",
+       y = "Frequency")
+
+ggsave("user_friendliness_ratings.png", user_friendliness_plot, width = 10, height = 6)
+
+# 6. Scatter Plot of Productivity Impact vs. Estimation Improvement
+productivity_estimation_plot <- ggplot(survey_data, aes(x = `How has using this tool affected your productivity?`, 
+                                                        y = `Has the tool improved your ability to estimate project time?`)) +
+  geom_jitter(width = 0.2, height = 0.2) +
+  labs(title = "Productivity Impact vs. Estimation Improvement",
+       x = "Productivity Impact",
+       y = "Estimation Improvement")
+
+ggsave("productivity_vs_estimation.png", productivity_estimation_plot, width = 10, height = 6)
